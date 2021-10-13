@@ -45,7 +45,7 @@ const synchronize = () => {
             const newListings = sortedListings
                 .filter((e) => new Date(e.date).getTime() > latestListing || !latestListing);
 
-            if (newListings.length) db.set(`last_listings_${collection}`, new Date(newListings[0].date).getTime());
+            db.set(`last_listings_${collection}`, new Date(sortedListings[0].date).getTime());
 
             (latestListing ? newListings : [sortedListings[0]]).forEach((event) => {
 
@@ -72,7 +72,7 @@ const synchronize = () => {
             const newEvents = sortedEvents
                 .filter((e) => new Date(e.date).getTime() > latestSale || !latestSale);
 
-            if (newEvents.length) db.set(`last_sales_${collection}`, new Date(newEvents[0].date).getTime());
+            db.set(`last_sales_${collection}`, new Date(sortedEvents[0].date).getTime());
 
             (latestSale ? newEvents : [sortedEvents[0]]).forEach((event) => {
 
