@@ -8,9 +8,21 @@ const client = new Discord.Client({
 const Database = require('easy-json-database');
 const db = new Database();
 
+const notificationChannelId = '839773978379378';
+
 const getHistory = (collection) => {
     return new Promise((resolve) => {
         fetch(`https://qzlsklfacc.medianetwork.cloud/all_sold_per_collection_day?collection=${collection}`).then((res) => {
+            res.json().then((data) => {
+                resolve(data);
+            });
+        });
+    });
+};
+
+const getListing = (collection) => {
+    return new Promise((resolve) => {
+        fetch(`ttps://qzlsklfacc.medianetwork.cloud/nft_for_sale?collection=${collection}`).then((res) => {
             res.json().then((data) => {
                 resolve(data);
             });
@@ -22,7 +34,35 @@ const synchronize = () => {
     [
         'roguesharks'
     ].forEach((collection) => {
-        const latestSale = db.get(`last_${collection}`);
+        const latestSale = db.get(`last_sales_${collection}`);
+        const latestListing = db.get(`last_listings_${collection}`);
+
+        getListing(collection).then((listings) => {
+
+            const sortedListings = listings
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            
+            const newListings = sortedListings
+                .filter((e) => new Date(e.date).getTime() > latestListing || !latestListing);
+
+            if (newListings.length) db.set(`last_listings_${collection}`, new Date(newListings[0].date).getTime());
+
+            (latestListing ? newListings : [sortedListings[0]]).forEach((event) => {
+
+                const embed = new Discord.MessageEmbed()
+                    .setTitle(`${event.name} has been listed!`)
+                    .setURL(`https://explorer.solana.com/address/${event.token_add}`)
+                    .addField('Price', `**${event.price} SOL**`)
+                    .setImage(event.link_img)
+                    .setColor('DARK_AQUA');
+
+                client.channels.cache.get(notificationChannelId).send({
+                    embeds: [embed]
+                });
+
+            });
+
+        });
         
         getHistory(collection).then((events) => {
 
@@ -32,7 +72,7 @@ const synchronize = () => {
             const newEvents = sortedEvents
                 .filter((e) => new Date(e.date).getTime() > latestSale || !latestSale);
 
-            if (newEvents.length) db.set(`last_${collection}`, new Date(newEvents[0].date).getTime());
+            if (newEvents.length) db.set(`last_sales_${collection}`, new Date(newEvents[0].date).getTime());
 
             (latestSale ? newEvents : [sortedEvents[0]]).forEach((event) => {
 
@@ -45,7 +85,6 @@ const synchronize = () => {
                     .setImage(event.link_img)
                     .setColor('DARK_AQUA');
 
-                const notificationChannelId = '895731493941428278';
                 client.channels.cache.get(notificationChannelId).send({
                     embeds: [embed]
                 });
