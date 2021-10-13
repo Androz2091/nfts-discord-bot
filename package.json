@@ -1,0 +1,12 @@
+{
+  "name": "solanart-notifications",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Androz2091 <androz2091@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^13.2.0",
+    "easy-json-database": "^1.5.0",
+    "node-fetch": "2"
+  }
+}
