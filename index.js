@@ -43,9 +43,9 @@ const synchronize = () => {
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             
             const newListings = sortedListings
-                .filter((e) => new Date(e.date).getTime() > latestListing || !latestListing);
+                .filter((e, i) => i < sortedListings.findIndex((l) => l.id === latestListing));
 
-            db.set(`last_listings_${collection}`, new Date(sortedListings[0].date).getTime());
+            db.set(`last_listings_${collection}`, sortedListings[0].id);
 
             (latestListing ? newListings : [sortedListings[0]]).forEach((event) => {
 
