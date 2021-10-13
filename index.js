@@ -22,7 +22,7 @@ const getHistory = (collection) => {
 
 const getListing = (collection) => {
     return new Promise((resolve) => {
-        fetch(`ttps://qzlsklfacc.medianetwork.cloud/nft_for_sale?collection=${collection}`).then((res) => {
+        fetch(`https://qzlsklfacc.medianetwork.cloud/nft_for_sale?collection=${collection}`).then((res) => {
             res.json().then((data) => {
                 resolve(data);
             });
