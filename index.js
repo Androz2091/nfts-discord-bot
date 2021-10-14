@@ -40,7 +40,7 @@ const synchronize = () => {
         getListing(collection).then((listings) => {
 
             const sortedListings = listings
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                .sort((a, b) => b.id - a.id);
             
             const newListings = sortedListings
                 .filter((e, i) => i < sortedListings.findIndex((l) => l.id === latestListing));
