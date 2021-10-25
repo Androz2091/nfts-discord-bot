@@ -8,15 +8,16 @@ const client = new Discord.Client({
 const Database = require('easy-json-database');
 const db = new Database();
 
-const notificationChannelId = '839773978379378';
+const listingChannelId = "898382415402262579";
+const salesChannelId = "898382388369969152";
 
 const getHistory = (collection) => {
     return new Promise((resolve) => {
         fetch(`https://qzlsklfacc.medianetwork.cloud/all_sold_per_collection_day?collection=${collection}`).then((res) => {
             res.json().then((data) => {
                 resolve(data);
-            });
-        });
+            }).catch(() => resolve([]));
+        }).catch(() => resolve([]));
     });
 };
 
@@ -25,14 +26,14 @@ const getListing = (collection) => {
         fetch(`https://qzlsklfacc.medianetwork.cloud/nft_for_sale?collection=${collection}`).then((res) => {
             res.json().then((data) => {
                 resolve(data);
-            });
-        });
+            }).catch(() => resolve([]));
+        }).catch(() => resolve([]));
     });
 };
 
 const synchronize = () => {
     [
-        'roguesharks'
+        'unirexcity'
     ].forEach((collection) => {
         const latestSale = db.get(`last_sales_${collection}`);
         const latestListing = db.get(`last_listings_${collection}`);
@@ -41,6 +42,8 @@ const synchronize = () => {
 
             const sortedListings = listings
                 .sort((a, b) => b.id - a.id);
+            
+            if (!sortedListings.length) return;
             
             const newListings = sortedListings
                 .filter((e, i) => i < sortedListings.findIndex((l) => l.id === latestListing));
@@ -56,7 +59,7 @@ const synchronize = () => {
                     .setImage(event.link_img)
                     .setColor('DARK_AQUA');
 
-                client.channels.cache.get(notificationChannelId).send({
+                client.channels.cache.get(listingChannelId).send({
                     embeds: [embed]
                 });
 
@@ -68,6 +71,8 @@ const synchronize = () => {
 
             const sortedEvents = events
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            if (!sortedEvents.length) return;
             
             const newEvents = sortedEvents
                 .filter((e) => new Date(e.date).getTime() > latestSale || !latestSale);
@@ -85,7 +90,7 @@ const synchronize = () => {
                     .setImage(event.link_img)
                     .setColor('DARK_AQUA');
 
-                client.channels.cache.get(notificationChannelId).send({
+                client.channels.cache.get(salesChannelId).send({
                     embeds: [embed]
                 });
 
@@ -103,4 +108,4 @@ client.on('ready', () => {
     setInterval(() => synchronize(), 10_000);
 });
 
-client.login('ODk3NTM3MDM4MTE3NjM4MTg0.YWXGgQ.MLy3na_KyCGztk_T0imzEpN9LOU');
+client.login(process.env.BOT_TOKEN);
