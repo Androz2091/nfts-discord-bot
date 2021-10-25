@@ -89,7 +89,7 @@ const synchronizeSolanart = () => {
 
             db.set(`last_listings_solanart_${collection}`, sortedListings[0].id);
 
-            (latestListing ? newListings : [sortedListings[0]]).forEach((event) => {
+            (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`${event.name} has been listed!`)
@@ -119,7 +119,7 @@ const synchronizeSolanart = () => {
 
             db.set(`last_sales_solanart_${collection}`, new Date(sortedEvents[0].date).getTime());
 
-            (latestSale ? newEvents : [sortedEvents[0]]).forEach((event) => {
+            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`${event.name} has been sold out!`)
@@ -191,7 +191,7 @@ const synchronizeMagicEden = () => {
 
             db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
 
-            (latestSale ? newEvents : [sortedEvents[0]]).forEach((event) => {
+            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`NFT from ${collection} has been sold out!`)
