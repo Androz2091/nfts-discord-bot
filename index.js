@@ -138,6 +138,7 @@ const synchronizeSolanart = () => {
                     .addField('Buyer', event.buyerAdd)
                     .addField('Seller', event.seller_address)
                     .setImage(event.link_img)
+                    .setTimestamp(new Date(event.date))
                     .setColor('DARK_AQUA')
                     .setFooter('Solanart');
 
@@ -182,6 +183,7 @@ const synchronizeMagicEden = () => {
                     .setURL(`https://explorer.solana.com/address/${event.mintAddress}`)
                     .addField('Price', `**${event.price} SOL**`)
                     .setImage(event.img)
+                    .setTimestamp(new Date(event.createdAt))
                     .setColor('DARK_AQUA')
                     .setFooter('Magic Eden');
 
@@ -220,6 +222,7 @@ const synchronizeMagicEden = () => {
                     .addField('Buyer', event.parsedTransaction.buyer_address)
                     .addField('Seller', event.seller_address)
                     .setImage(nft.img)
+                    .setTimestamp(new Date(event.createdAt))
                     .setColor('DARK_AQUA')
                     .setFooter('Magic Eden');
 
