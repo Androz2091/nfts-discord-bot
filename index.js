@@ -217,7 +217,8 @@ const synchronizeMagicEden = () => {
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
-    synchronize();
+    synchronizeSolanart();
+    synchronizeMagicEden();
     setInterval(() => synchronizeSolanart(), 10_000);
     setInterval(() => synchronizeMagicEden(), 10_000);
 });
