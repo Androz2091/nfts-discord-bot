@@ -51,6 +51,16 @@ const getListingMagicEden = (collection) => {
     });
 };
 
+const fetchMagicEdenNFT = (mint) => {
+    return new Promise((resolve) => {
+        fetch(`Request URL: https://api-mainnet.magiceden.io/rpc/getNFTByMintAddress/${mint}`).then((res) => {
+            res.json().then((data) => {
+                resolve(data.results);
+            }).catch(() => resolve([]));
+        });
+    });
+}
+
 const getHistoryMagicEden = (collection) => {
     return new Promise((resolve) => {
         const query = decodeURI(escape(JSON.stringify({
@@ -195,17 +205,19 @@ const synchronizeMagicEden = () => {
                 db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
             }
 
-            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach((event) => {
+            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach(async (event) => {
 
                 if (!event.parsedTransaction) return;
 
+                const nft = await fetchMagicEdenNFT(event.parsedTransaction.mint);
+
                 const embed = new Discord.MessageEmbed()
-                    .setTitle(`NFT from ${collection} has been sold out!`)
+                    .setTitle(`${nft.title} has been sold out!`)
                     .setURL(`https://explorer.solana.com/tx/${event.transaction_id}`)
                     .addField('Price', `**${(event.parsedTransaction.total_amount / 10E8).toFixed(2)} SOL**`)
                     .addField('Buyer', event.parsedTransaction.buyer_address)
                     .addField('Seller', event.seller_address)
-                    .setImage(event.link_img)
+                    .setImage(nft.img)
                     .setColor('DARK_AQUA')
                     .setFooter('Magic Eden');
 
