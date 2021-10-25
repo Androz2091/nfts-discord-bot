@@ -76,7 +76,7 @@ const getHistoryMagicEden = (collection) => {
             res.json().then((data) => {
                 resolve(data.results);
             }).catch(() => resolve([]));
-        });
+        }).catch(() => resolve([]));
     });
 }
 
