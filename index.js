@@ -159,8 +159,8 @@ const synchronizeMagicEden = () => {
             const newListings = sortedListings
                 .filter((e) => new Date(e.createdAt).getTime() > latestListing || !latestListing);
 
-            if (new Date(sortedListings[0].createdAt).getTime() > latestListing) {
-                db.set(`last_sales_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
+            if (new Date(sortedListings[0].createdAt).getTime() > latestListing || !latestListing) {
+                db.set(`last_listings_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
             }
 
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
@@ -191,7 +191,7 @@ const synchronizeMagicEden = () => {
             const newEvents = sortedEvents
                 .filter((e) => new Date(e.createdAt).getTime() > latestSale || !latestSale);
 
-            if (new Date(sortedEvents[0].createdAt).getTime() > latestSale) {
+            if (new Date(sortedEvents[0].createdAt).getTime() > latestSale || !latestSale) {
                 db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
             }
 
