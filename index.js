@@ -159,7 +159,7 @@ const synchronizeMagicEden = () => {
             const newListings = sortedListings
                 .filter((e) => new Date(e.createdAt).getTime() > latestListing || !latestListing);
 
-            db.set(`last_sales_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
+            db.set(`last_listings_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
 
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
 
