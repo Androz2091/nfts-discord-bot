@@ -47,17 +47,17 @@ const getListingMagicEden = (collection) => {
             res.json().then((data) => {
                 resolve(data.results);
             }).catch(() => resolve([]));
-        });
+        }).catch(() => resolve([]));
     });
 };
 
 const fetchMagicEdenNFT = (mint) => {
     return new Promise((resolve) => {
-        fetch(`Request URL: https://api-mainnet.magiceden.io/rpc/getNFTByMintAddress/${mint}`).then((res) => {
+        fetch(`https://api-mainnet.magiceden.io/rpc/getNFTByMintAddress/${mint}`).then((res) => {
             res.json().then((data) => {
                 resolve(data.results);
             }).catch(() => resolve([]));
-        });
+        }).catch(() => resolve([]));
     });
 }
 
@@ -82,7 +82,7 @@ const getHistoryMagicEden = (collection) => {
 
 const synchronizeSolanart = () => {
     [
-        'unirexcity'
+        'thetower'
     ].forEach((collection) => {
         const latestSale = db.get(`last_sales_solanart_${collection}`);
         const latestListing = db.get(`last_listings_solanart_${collection}`);
@@ -174,6 +174,8 @@ const synchronizeMagicEden = () => {
             }
 
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
+
+              console.log(JSON.stringify(event))
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`${event.title} has been listed!`)
