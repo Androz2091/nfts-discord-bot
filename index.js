@@ -8,8 +8,8 @@ const client = new Discord.Client({
 const Database = require('easy-json-database');
 const db = new Database();
 
-const listingChannelId = "898382415402262579";
-const salesChannelId = "898382388369969152";
+const listingChannelId = "902121728254308482";
+const salesChannelId = "902121713012211712";
 
 const getHistorySolanart = (collection) => {
     return new Promise((resolve) => {
@@ -55,7 +55,7 @@ const getHistoryMagicEden = (collection) => {
     return new Promise((resolve) => {
         const query = decodeURI(escape(JSON.stringify({
             $match: {
-                collectionSymbol: collection
+                collection_symbol: collection
             },
             $sort:  {
                 blockTime: -1
@@ -144,7 +144,7 @@ const synchronizeSolanart = () => {
 
 const synchronizeMagicEden = () => {
     [
-        'rogue_sharks'
+        'solana_monkette_busines'
     ].forEach((collection) => {
         const latestSale = db.get(`last_sales_magiceden_${collection}`);
         const latestListing = db.get(`last_listings_magiceden_${collection}`);
@@ -159,7 +159,9 @@ const synchronizeMagicEden = () => {
             const newListings = sortedListings
                 .filter((e) => new Date(e.createdAt).getTime() > latestListing || !latestListing);
 
-            db.set(`last_listings_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
+            if (new Date(sortedListings[0].createdAt).getTime() > latestListing) {
+                db.set(`last_sales_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
+            }
 
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
 
@@ -189,9 +191,13 @@ const synchronizeMagicEden = () => {
             const newEvents = sortedEvents
                 .filter((e) => new Date(e.createdAt).getTime() > latestSale || !latestSale);
 
-            db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
+            if (new Date(sortedEvents[0].createdAt).getTime() > latestSale) {
+                db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
+            }
 
             (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach((event) => {
+
+                if (!event.parsedTransaction) return;
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`NFT from ${collection} has been sold out!`)
@@ -217,10 +223,12 @@ const synchronizeMagicEden = () => {
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
+    // do not wait the 10s and start syncing right now
     synchronizeSolanart();
     synchronizeMagicEden();
     setInterval(() => synchronizeSolanart(), 10_000);
     setInterval(() => synchronizeMagicEden(), 10_000);
 });
+
 
 client.login(process.env.BOT_TOKEN);
