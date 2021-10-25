@@ -63,15 +63,9 @@ const fetchMagicEdenNFT = (mint) => {
 
 const getHistoryMagicEden = (collection) => {
     return new Promise((resolve) => {
-        const query = decodeURI(escape(JSON.stringify({
-            $match: {
-                collection_symbol: collection
-            },
-            $sort:  {
-                blockTime: -1
-            },
-            $skip: 0
-        })));
+        const query = decodeURI(escape(
+            `{"$match":{"collectionSymbol":"${collection}"},"$sort":{"createdAt":-1},"$skip":0,"$limit":20}`
+        ));
         fetch(`https://api-mainnet.magiceden.io/rpc/getGlobalActivitiesByQuery?q=${query}`).then((res) => {
             res.json().then((data) => {
                 resolve(data.results);
@@ -176,20 +170,23 @@ const synchronizeMagicEden = () => {
 
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
 
-              console.log(JSON.stringify(event))
+                setTimeout(async () => {
+                    const nft = await fetchMagicEdenNFT(event.mintAddress);
+                    
+                    const embed = new Discord.MessageEmbed()
+                        .setTitle(`${nft.title} has been listed!`)
+                        .setURL(`https://explorer.solana.com/address/${nft.mintAddress}`)
+                        .addField('Price', `**${nft.price} SOL**`)
+                        .setImage(nft.img)
+                        .setTimestamp(new Date(event.createdAt))
+                        .setColor('DARK_AQUA')
+                        .setFooter('Magic Eden');
 
-                const embed = new Discord.MessageEmbed()
-                    .setTitle(`${event.title} has been listed!`)
-                    .setURL(`https://explorer.solana.com/address/${event.mintAddress}`)
-                    .addField('Price', `**${event.price} SOL**`)
-                    .setImage(event.img)
-                    .setTimestamp(new Date(event.createdAt))
-                    .setColor('DARK_AQUA')
-                    .setFooter('Magic Eden');
+                    client.channels.cache.get(listingChannelId).send({
+                        embeds: [embed]
+                    });
 
-                client.channels.cache.get(listingChannelId).send({
-                    embeds: [embed]
-                });
+                }, 1500);
 
             });
 
