@@ -51,6 +51,25 @@ const getListingMagicEden = (collection) => {
     });
 };
 
+const getHistoryMagicEden = (collection) => {
+    return new Promise((resolve) => {
+        const query = decodeURI(escape(JSON.stringify({
+            $match: {
+                collectionSymbol: collection
+            },
+            $sort:  {
+                blockTime: -1
+            },
+            $skip: 0
+        })));
+        fetch(`https://api-mainnet.magiceden.io/rpc/getGlobalActivitiesByQuery?q=${query}`).then((res) => {
+            res.json().then((data) => {
+                resolve(data.results);
+            }).catch(() => resolve([]));
+        });
+    });
+}
+
 const synchronizeSolanart = () => {
     [
         'unirexcity'
@@ -77,7 +96,8 @@ const synchronizeSolanart = () => {
                     .setURL(`https://explorer.solana.com/address/${event.token_add}`)
                     .addField('Price', `**${event.price} SOL**`)
                     .setImage(event.link_img)
-                    .setColor('DARK_AQUA');
+                    .setColor('DARK_AQUA')
+                    .setFooter('Solanart');
 
                 client.channels.cache.get(listingChannelId).send({
                     embeds: [embed]
@@ -108,7 +128,8 @@ const synchronizeSolanart = () => {
                     .addField('Buyer', event.buyerAdd)
                     .addField('Seller', event.seller_address)
                     .setImage(event.link_img)
-                    .setColor('DARK_AQUA');
+                    .setColor('DARK_AQUA')
+                    .setFooter('Solanart');
 
                 client.channels.cache.get(salesChannelId).send({
                     embeds: [embed]
@@ -143,11 +164,12 @@ const synchronizeMagicEden = () => {
             (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
-                    .setTitle(`${event.name} has been listed!`)
-                    .setURL(`https://explorer.solana.com/address/${event.token_add}`)
+                    .setTitle(`${event.title} has been listed!`)
+                    .setURL(`https://explorer.solana.com/address/${event.mintAddress}`)
                     .addField('Price', `**${event.price} SOL**`)
-                    .setImage(event.link_img)
-                    .setColor('DARK_AQUA');
+                    .setImage(event.img)
+                    .setColor('DARK_AQUA')
+                    .setFooter('Magic Eden');
 
                 client.channels.cache.get(listingChannelId).send({
                     embeds: [embed]
@@ -160,25 +182,26 @@ const synchronizeMagicEden = () => {
         getHistoryMagicEden(collection).then((events) => {
 
             const sortedEvents = events
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             if (!sortedEvents.length) return;
             
             const newEvents = sortedEvents
-                .filter((e) => new Date(e.date).getTime() > latestSale || !latestSale);
+                .filter((e) => new Date(e.createdAt).getTime() > latestSale || !latestSale);
 
-            db.set(`last_sales_solanart_${collection}`, new Date(sortedEvents[0].date).getTime());
+            db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
 
             (latestSale ? newEvents : [sortedEvents[0]]).forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
-                    .setTitle(`${event.name} has been sold out!`)
-                    .setURL(`https://explorer.solana.com/address/${event.token_add}`)
-                    .addField('Price', `**${event.price} SOL**`)
-                    .addField('Buyer', event.buyerAdd)
+                    .setTitle(`NFT from ${collection} has been sold out!`)
+                    .setURL(`https://explorer.solana.com/tx/${event.transaction_id}`)
+                    .addField('Price', `**${(event.parsedTransaction.total_amount / 10E8).toFixed(2)} SOL**`)
+                    .addField('Buyer', event.parsedTransaction.buyer_address)
                     .addField('Seller', event.seller_address)
                     .setImage(event.link_img)
-                    .setColor('DARK_AQUA');
+                    .setColor('DARK_AQUA')
+                    .setFooter('Magic Eden');
 
                 client.channels.cache.get(salesChannelId).send({
                     embeds: [embed]
@@ -199,4 +222,4 @@ client.on('ready', () => {
     setInterval(() => synchronizeMagicEden(), 10_000);
 });
 
-//client.login(process.env.BOT_TOKEN);
+client.login(process.env.BOT_TOKEN);
