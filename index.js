@@ -41,7 +41,7 @@ const getListingMagicEden = (collection) => {
                 createdAt: -1
             },
             $skip: 0,
-            $limit: 20
+            $limit: 10
         })));
         fetch(`https://api-mainnet.magiceden.io/rpc/getListedNFTsByQuery?q=${query}`).then((res) => {
             res.json().then((data) => {
@@ -63,9 +63,17 @@ const fetchMagicEdenNFT = (mint) => {
 
 const getHistoryMagicEden = (collection) => {
     return new Promise((resolve) => {
-        const query = decodeURI(escape(
-            `{"$match":{"collectionSymbol":"${collection}"},"$sort":{"createdAt":-1},"$skip":0,"$limit":20}`
-        ));
+        const query = decodeURI(escape(JSON.stringify({
+            $match: {
+                collection_symbol: collection,
+                txType: 'exchange'
+            },
+            $sort: {
+                blockTime: -1
+            },
+            $skip: 0,
+            $limit: 10
+        })));
         fetch(`https://api-mainnet.magiceden.io/rpc/getGlobalActivitiesByQuery?q=${query}`).then((res) => {
             res.json().then((data) => {
                 resolve(data.results);
@@ -156,19 +164,24 @@ const synchronizeMagicEden = () => {
 
         getListingMagicEden(collection).then((listings) => {
 
-            const sortedListings = listings
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            if (!sortedListings.length) return;
+            if (!listings.length) return;
             
-            const newListings = sortedListings
-                .filter((e) => new Date(e.createdAt).getTime() > latestListing || !latestListing);
+            let newListings = [];
+            const indexOfLastListingInNewArray = listings.findIndex((e) => e.title === latestListing);
 
-            if (new Date(sortedListings[0].createdAt).getTime() > latestListing || !latestListing) {
-                db.set(`last_listings_magiceden_${collection}`, new Date(sortedListings[0].createdAt).getTime());
+            // if the last listing can not be found
+            // (for example if the latest listing was deleted)
+            if (indexOfLastListingInNewArray === -1) {
+                newListings.push(listings[0]);
+            } else {
+                newListings = listings.slice(0, indexOfLastListingInNewArray);
             }
 
-            (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
+            if (newListings[0] || !latestListing) {
+                db.set(`last_listings_magiceden_${collection}`, newListings[0].title);
+            }
+
+            newListings.reverse().forEach((event) => {
 
                 setTimeout(async () => {
                     const nft = await fetchMagicEdenNFT(event.mintAddress);
@@ -238,10 +251,11 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
     // do not wait the 10s and start syncing right now
-    synchronizeSolanart();
+    //synchronizeSolanart();
     synchronizeMagicEden();
-    setInterval(() => synchronizeSolanart(), 10_000);
+    //setInterval(() => synchronizeSolanart(), 10_000);
     setInterval(() => synchronizeMagicEden(), 10_000);
+
 });
 
 
