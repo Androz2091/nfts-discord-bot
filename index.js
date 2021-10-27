@@ -90,18 +90,25 @@ const synchronizeSolanart = () => {
         const latestListing = db.get(`last_listings_solanart_${collection}`);
 
         getListingSolanart(collection).then((listings) => {
-
-            const sortedListings = listings
-                .sort((a, b) => b.id - a.id);
             
-            if (!sortedListings.length) return;
+            if (!listings.length) return;
             
-            const newListings = sortedListings
-                .filter((e, i) => i < sortedListings.findIndex((l) => l.id === latestListing));
+            let newListings = [];
+            const indexOfLastListingInNewArray = listings.findIndex((e) => e.name === latestListing);
 
-            db.set(`last_listings_solanart_${collection}`, sortedListings[0].id);
+            // if the last listing can not be found
+            // (for example if the latest listing was deleted)
+            if (indexOfLastListingInNewArray === -1) {
+                newListings.push(listings[0]);
+            } else {
+                newListings = listings.slice(0, indexOfLastListingInNewArray);
+            }
 
-            (latestListing ? newListings.reverse() : [sortedListings[0]]).forEach((event) => {
+            if (newListings[0] || !latestListing) {
+                db.set(`last_listings_solanart_${collection}`, newListings[0].name);
+            }
+
+            newListings.reverse().forEach((event) => {
 
                 const embed = new Discord.MessageEmbed()
                     .setTitle(`${event.name} has been listed!`)
@@ -199,7 +206,7 @@ const synchronizeMagicEden = () => {
                         embeds: [embed]
                     });
 
-                }, 1500);
+                }, 5000);
 
             });
 
@@ -259,4 +266,8 @@ client.on('ready', () => {
 });
 
 
-client.login(process.env.BOT_TOKEN);
+//client.login(process.env.BOT_TOKEN);
+
+getListingSolanart('roguesharks').then((listings) => {
+    console.log(listings);
+});
