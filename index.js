@@ -11,6 +11,9 @@ const db = new Database();
 const listingChannelId = "902121728254308482";
 const salesChannelId = "902121713012211712";
 
+const solanartListingChannelId ="902360018194677820"
+const solanartSalesChannelId ="902360051782664273"
+
 const getHistorySolanart = (collection) => {
     return new Promise((resolve) => {
         fetch(`https://qzlsklfacc.medianetwork.cloud/all_sold_per_collection_day?collection=${collection}`).then((res) => {
@@ -116,11 +119,12 @@ const synchronizeSolanart = () => {
                     .addField('Price', `**${event.price} SOL**`)
                     .setImage(event.link_img)
                     .setColor('DARK_AQUA')
+                    .setTimestamp()
                     .setFooter('Solanart');
 
-                client.channels.cache.get(listingChannelId).send({
+                client.channels.cache.get(solanartListingChannelId).send({
                     embeds: [embed]
-                });
+                }).catch(() => {});
 
             });
 
@@ -151,9 +155,9 @@ const synchronizeSolanart = () => {
                     .setColor('DARK_AQUA')
                     .setFooter('Solanart');
 
-                client.channels.cache.get(salesChannelId).send({
+                client.channels.cache.get(solanartSalesChannelId).send({
                     embeds: [embed]
-                });
+                }).catch(() => {});
 
             });
 
@@ -204,7 +208,7 @@ const synchronizeMagicEden = () => {
 
                     client.channels.cache.get(listingChannelId).send({
                         embeds: [embed]
-                    });
+                    }).catch(() => {});
 
                 }, 5000);
 
@@ -245,7 +249,7 @@ const synchronizeMagicEden = () => {
 
                 client.channels.cache.get(salesChannelId).send({
                     embeds: [embed]
-                });
+                }).catch(() => {});
 
             });
 
@@ -258,16 +262,12 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
     // do not wait the 10s and start syncing right now
-    //synchronizeSolanart();
+    synchronizeSolanart();
     synchronizeMagicEden();
-    //setInterval(() => synchronizeSolanart(), 10_000);
+    setInterval(() => synchronizeSolanart(), 10_000);
     setInterval(() => synchronizeMagicEden(), 10_000);
 
 });
 
 
-//client.login(process.env.BOT_TOKEN);
-
-getListingSolanart('roguesharks').then((listings) => {
-    console.log(listings);
-});
+client.login(process.env.BOT_TOKEN);
