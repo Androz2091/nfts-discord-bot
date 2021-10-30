@@ -8,12 +8,6 @@ const client = new Discord.Client({
 const Database = require('easy-json-database');
 const db = new Database();
 
-const listingChannelId = "902121728254308482";
-const salesChannelId = "902121713012211712";
-
-const solanartListingChannelId ="902360018194677820"
-const solanartSalesChannelId ="902360051782664273"
-
 const getHistorySolanart = (collection) => {
     return new Promise((resolve) => {
         fetch(`https://qzlsklfacc.medianetwork.cloud/all_sold_per_collection_day?collection=${collection}`).then((res) => {
@@ -122,7 +116,7 @@ const synchronizeSolanart = () => {
                     .setTimestamp()
                     .setFooter('Solanart');
 
-                client.channels.cache.get(solanartListingChannelId).send({
+                client.channels.cache.get(process.env.SOLANART_LISTINGS_CHANNEL_ID).send({
                     embeds: [embed]
                 }).catch(() => {});
 
@@ -155,7 +149,7 @@ const synchronizeSolanart = () => {
                     .setColor('DARK_AQUA')
                     .setFooter('Solanart');
 
-                client.channels.cache.get(solanartSalesChannelId).send({
+                client.channels.cache.get(process.env.SOLANART_SALES_CHANNEL_ID).send({
                     embeds: [embed]
                 }).catch(() => {});
 
@@ -206,7 +200,7 @@ const synchronizeMagicEden = () => {
                         .setColor('DARK_AQUA')
                         .setFooter('Magic Eden');
 
-                    client.channels.cache.get(listingChannelId).send({
+                    client.channels.cache.get(process.env.MAGICEDEN_LISTINGS_CHANNEL_ID).send({
                         embeds: [embed]
                     }).catch(() => {});
 
@@ -247,7 +241,7 @@ const synchronizeMagicEden = () => {
                     .setColor('DARK_AQUA')
                     .setFooter('Magic Eden');
 
-                client.channels.cache.get(salesChannelId).send({
+                client.channels.cache.get(process.env.MAGICEDEN_SALES_CHANNEL_ID).send({
                     embeds: [embed]
                 }).catch(() => {});
 
@@ -270,4 +264,4 @@ client.on('ready', () => {
 });
 
 
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.DISCORD_BOT_TOKEN);
