@@ -1,6 +1,6 @@
 # NFTs Discord Bot
 
-✨ Gets notifications when an item is sold on Solanart or MagicEden!
+✨ Discord bot that sends notifications when an item is sold on Solanart or MagicEden!
 
 ## Need more markets?
 
