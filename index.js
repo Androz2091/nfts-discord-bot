@@ -1,267 +1,64 @@
-const fetch = require('node-fetch');
+const { config } = require('dotenv');
+config();
+
+const WebSocketClient = require('websocket').client;
+const wsClient = new WebSocketClient();
 
 const Discord = require('discord.js');
 const client = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS]
+	intents: [Discord.Intents.FLAGS.GUILDS]
 });
 
-const Database = require('easy-json-database');
-const db = new Database();
+wsClient.on('connect', function(connection) {
+    console.log(`Connected to scour.so!`);
 
-const getHistorySolanart = (collection) => {
-    return new Promise((resolve) => {
-        fetch(`https://qzlsklfacc.medianetwork.cloud/all_sold_per_collection_day?collection=${collection}`).then((res) => {
-            res.json().then((data) => {
-                resolve(data);
-            }).catch(() => resolve([]));
-        }).catch(() => resolve([]));
+	const sendMessage = (data) => connection.send(JSON.stringify(data));
+
+    connection.on('message', function(message) {
+        if (message.type === 'utf8') {
+			const data = JSON.parse(message.utf8Data);
+			const eventData = data?.payload?.data?.event?.at(0);
+			if (eventData) {
+				
+				const embed = new Discord.MessageEmbed()
+					.setAuthor(`${eventData.asset.name} has been sold`)
+					.addField('Collection', eventData.collection.name)
+					.addField('NFT Name', eventData.asset.name)
+					.addField('Sold Price', eventData.price_amount + ' SOL')
+					.addField('Collection Floor Price', eventData.floor + ' SOL')
+					.setColor('AQUA');
+
+				client.channels.cache.get(process.env.SALES_NOTIFICATION_CHANNEL_ID).send({
+					embeds: [embed]
+				});
+			}
+        }
     });
-};
 
-const getListingSolanart = (collection) => {
-    return new Promise((resolve) => {
-        fetch(`https://qzlsklfacc.medianetwork.cloud/nft_for_sale?collection=${collection}`).then((res) => {
-            res.json().then((data) => {
-                resolve(data);
-            }).catch(() => resolve([]));
-        }).catch(() => resolve([]));
-    });
-};
-
-const getListingMagicEden = (collection) => {
-    return new Promise((resolve) => {
-        const query = decodeURI(escape(JSON.stringify({
-            $match: {
-                collectionSymbol: collection
-            },
-            $sort:  {
-                createdAt: -1
-            },
-            $skip: 0,
-            $limit: 10
-        })));
-        fetch(`https://api-mainnet.magiceden.io/rpc/getListedNFTsByQuery?q=${query}`).then((res) => {
-            res.json().then((data) => {
-                resolve(data.results);
-            }).catch(() => resolve([]));
-        }).catch(() => resolve([]));
-    });
-};
-
-const fetchMagicEdenNFT = (mint) => {
-    return new Promise((resolve) => {
-        fetch(`https://api-mainnet.magiceden.io/rpc/getNFTByMintAddress/${mint}`).then((res) => {
-            res.json().then((data) => {
-                resolve(data.results);
-            }).catch(() => resolve([]));
-        }).catch(() => resolve([]));
-    });
-}
-
-const getHistoryMagicEden = (collection) => {
-    return new Promise((resolve) => {
-        const query = decodeURI(escape(JSON.stringify({
-            $match: {
-                collection_symbol: collection,
-                txType: 'exchange'
-            },
-            $sort: {
-                blockTime: -1
-            },
-            $skip: 0,
-            $limit: 10
-        })));
-        fetch(`https://api-mainnet.magiceden.io/rpc/getGlobalActivitiesByQuery?q=${query}`).then((res) => {
-            res.json().then((data) => {
-                resolve(data.results);
-            }).catch(() => resolve([]));
-        }).catch(() => resolve([]));
-    });
-}
-
-const synchronizeSolanart = () => {
-    [
-        'thetower'
-    ].forEach((collection) => {
-        const latestSale = db.get(`last_sales_solanart_${collection}`);
-        const latestListing = db.get(`last_listings_solanart_${collection}`);
-
-        getListingSolanart(collection).then((listings) => {
-            
-            if (!listings.length) return;
-            
-            let newListings = [];
-            const indexOfLastListingInNewArray = listings.findIndex((e) => e.name === latestListing);
-
-            // if the last listing can not be found
-            // (for example if the latest listing was deleted)
-            if (indexOfLastListingInNewArray === -1) {
-                newListings.push(listings[0]);
-            } else {
-                newListings = listings.slice(0, indexOfLastListingInNewArray);
-            }
-
-            if (newListings[0] || !latestListing) {
-                db.set(`last_listings_solanart_${collection}`, newListings[0].name);
-            }
-
-            newListings.reverse().forEach((event) => {
-
-                const embed = new Discord.MessageEmbed()
-                    .setTitle(`${event.name} has been listed!`)
-                    .setURL(`https://explorer.solana.com/address/${event.token_add}`)
-                    .addField('Price', `**${event.price} SOL**`)
-                    .setImage(event.link_img)
-                    .setColor('DARK_AQUA')
-                    .setTimestamp()
-                    .setFooter('Solanart');
-
-                client.channels.cache.get(process.env.SOLANART_LISTINGS_CHANNEL_ID).send({
-                    embeds: [embed]
-                }).catch(() => {});
-
-            });
-
-        });
-        
-        getHistorySolanart(collection).then((events) => {
-
-            const sortedEvents = events
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            if (!sortedEvents.length) return;
-            
-            const newEvents = sortedEvents
-                .filter((e) => new Date(e.date).getTime() > latestSale || !latestSale);
-
-            db.set(`last_sales_solanart_${collection}`, new Date(sortedEvents[0].date).getTime());
-
-            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach((event) => {
-
-                const embed = new Discord.MessageEmbed()
-                    .setTitle(`${event.name} has been sold out!`)
-                    .setURL(`https://explorer.solana.com/address/${event.token_add}`)
-                    .addField('Price', `**${event.price} SOL**`)
-                    .addField('Buyer', event.buyerAdd)
-                    .addField('Seller', event.seller_address)
-                    .setImage(event.link_img)
-                    .setTimestamp(new Date(event.date))
-                    .setColor('DARK_AQUA')
-                    .setFooter('Solanart');
-
-                client.channels.cache.get(process.env.SOLANART_SALES_CHANNEL_ID).send({
-                    embeds: [embed]
-                }).catch(() => {});
-
-            });
-
-        });
-
-    });
-};
-
-const synchronizeMagicEden = () => {
-    [
-        'solana_monkette_busines'
-    ].forEach((collection) => {
-        const latestSale = db.get(`last_sales_magiceden_${collection}`);
-        const latestListing = db.get(`last_listings_magiceden_${collection}`);
-
-        getListingMagicEden(collection).then((listings) => {
-
-            if (!listings.length) return;
-            
-            let newListings = [];
-            const indexOfLastListingInNewArray = listings.findIndex((e) => e.title === latestListing);
-
-            // if the last listing can not be found
-            // (for example if the latest listing was deleted)
-            if (indexOfLastListingInNewArray === -1) {
-                newListings.push(listings[0]);
-            } else {
-                newListings = listings.slice(0, indexOfLastListingInNewArray);
-            }
-
-            if (newListings[0] || !latestListing) {
-                db.set(`last_listings_magiceden_${collection}`, newListings[0].title);
-            }
-
-            newListings.reverse().forEach((event) => {
-
-                setTimeout(async () => {
-                    const nft = await fetchMagicEdenNFT(event.mintAddress);
-                    
-                    const embed = new Discord.MessageEmbed()
-                        .setTitle(`${nft.title} has been listed!`)
-                        .setURL(`https://explorer.solana.com/address/${nft.mintAddress}`)
-                        .addField('Price', `**${nft.price} SOL**`)
-                        .setImage(nft.img)
-                        .setTimestamp(new Date(event.createdAt))
-                        .setColor('DARK_AQUA')
-                        .setFooter('Magic Eden');
-
-                    client.channels.cache.get(process.env.MAGICEDEN_LISTINGS_CHANNEL_ID).send({
-                        embeds: [embed]
-                    }).catch(() => {});
-
-                }, 5000);
-
-            });
-
-        });
-        
-        getHistoryMagicEden(collection).then((events) => {
-
-            const sortedEvents = events
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            if (!sortedEvents.length) return;
-            
-            const newEvents = sortedEvents
-                .filter((e) => new Date(e.createdAt).getTime() > latestSale || !latestSale);
-
-            if (new Date(sortedEvents[0].createdAt).getTime() > latestSale || !latestSale) {
-                db.set(`last_sales_magiceden_${collection}`, new Date(sortedEvents[0].createdAt).getTime());
-            }
-
-            (latestSale ? newEvents.reverse() : [sortedEvents[0]]).forEach(async (event) => {
-
-                if (!event.parsedTransaction) return;
-
-                const nft = await fetchMagicEdenNFT(event.parsedTransaction.mint);
-
-                const embed = new Discord.MessageEmbed()
-                    .setTitle(`${nft.title} has been sold out!`)
-                    .setURL(`https://explorer.solana.com/tx/${event.transaction_id}`)
-                    .addField('Price', `**${(event.parsedTransaction.total_amount / 10E8).toFixed(2)} SOL**`)
-                    .addField('Buyer', event.parsedTransaction.buyer_address)
-                    .addField('Seller', event.seller_address)
-                    .setImage(nft.img)
-                    .setTimestamp(new Date(event.createdAt))
-                    .setColor('DARK_AQUA')
-                    .setFooter('Magic Eden');
-
-                client.channels.cache.get(process.env.MAGICEDEN_SALES_CHANNEL_ID).send({
-                    embeds: [embed]
-                }).catch(() => {});
-
-            });
-
-        });
-
-    });
-};
-
-client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-
-    // do not wait the 10s and start syncing right now
-    synchronizeSolanart();
-    synchronizeMagicEden();
-    setInterval(() => synchronizeSolanart(), 10_000);
-    setInterval(() => synchronizeMagicEden(), 10_000);
-
+	sendMessage({
+		type: "connection_init",
+		payload: {
+			headers: {}
+		}
+	});
+    connection.send(JSON.stringify({
+		id: "1",
+		type: "start",
+		payload: {
+			variables: {
+				where: {
+					_or: [
+						{ type: { _eq : "SALE" } }
+					],
+					collection_id: process.env.COLLECTION_ID ? { _eq: process.env.COLLECTION_ID } : undefined
+				}
+			},
+			extensions: {},
+			operationName: "OnEventAdded",
+			query: "subscription OnEventAdded($where: event_bool_exp = {}) {\n  event(limit: 25, order_by: {datetime: desc}, where: $where) {\n    id\n    type\n    signature\n    datetime\n    price_amount\n    previous_price_amount\n    owner\n    previous_owner\n    platform\n    floor\n    asset {\n      name\n      token_mint_address\n      image_original_url\n      __typename\n    }\n    collection {\n      id\n      name\n      slug\n      __typename\n    }\n    __typename\n  }\n}\n"
+		}
+	}));
 });
 
-
+wsClient.connect('wss://graphql.scour.so/v1/graphql');
 client.login(process.env.DISCORD_BOT_TOKEN);

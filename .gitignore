@@ -3,3 +3,6 @@ node_modules
 
 # DB
 db.json
+
+# Config
+.env
